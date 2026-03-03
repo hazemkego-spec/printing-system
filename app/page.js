@@ -1,109 +1,100 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function PrintingApp() {
-  const teachers = [
-    { name: "اختر المدرس", rate: 0 },
-    { name: "مستر محمد (فيزياء)", rate: 0.50 },
-    { name: "مستر أحمد (كيمياء)", rate: 0.45 },
-    { name: "مس سارة (إنجليزي)", rate: 0.60 },
-  ];
-
-  const [selectedTeacher, setSelectedTeacher] = useState(teachers[0]);
   const [pages, setPages] = useState("");
   const [copies, setCopies] = useState("");
+  const [teacher, setTeacher] = useState("مستر محمد");
+  const [rate, setRate] = useState(0.5);
+  const [history, setHistory] = useState([]);
 
-  const total = Number(pages) * Number(copies) * selectedTeacher.rate;
+  // أول ما البرنامج يفتح، يجيب الداتا القديمة من الموبايل
+  useEffect(() => {
+    const saved = localStorage.getItem('printing_logs');
+    if (saved) setHistory(JSON.parse(saved));
+  }, []);
+
+  const total = Number(pages) * Number(copies) * rate;
+
+  const handleSave = () => {
+    if (!pages || !copies) return alert("اكتب الأرقام الأول!");
+    
+    const newEntry = {
+      id: Date.now(),
+      teacher,
+      details: `${pages} ورقة × ${copies} نسخة`,
+      total: total.toFixed(2),
+      time: new Date().toLocaleTimeString('ar-EG')
+    };
+
+    const updatedHistory = [newEntry, ...history];
+    setHistory(updatedHistory);
+    localStorage.setItem('printing_logs', JSON.stringify(updatedHistory));
+    
+    // تصفير الخانات بعد الحفظ
+    setPages("");
+    setCopies("");
+    alert("تم التسجيل في الدفتر! ✅");
+  };
+
+  const clearAll = () => {
+    if(confirm("عايز تمسح كل السجل؟")) {
+      setHistory([]);
+      localStorage.removeItem('printing_logs');
+    }
+  };
 
   return (
-    <div style={{ padding: '20px', direction: 'rtl', textAlign: 'right', fontFamily: 'Arial', backgroundColor: '#1a1a1a', minHeight: '100vh', color: 'white' }}>
-      
-      <h2 style={{ color: '#00ff88', textAlign: 'center', marginBottom: '30px' }}>🖨️ إدارة حسابات المطبعة</h2>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ padding: '15px', direction: 'rtl', textAlign: 'right', fontFamily: 'sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh' }}>
+      <h2 style={{ textAlign: 'center', color: '#2c3e50' }}>📑 دفتر حسابات المطبعة</h2>
+
+      {/* قسم الإدخال */}
+      <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+        <label>👤 المدرس:</label>
+        <select style={inputStyle} onChange={(e) => {
+          setTeacher(e.target.value);
+          if(e.target.value === "مستر محمد") setRate(0.5);
+          if(e.target.value === "مستر أحمد") setRate(0.4);
+        }}>
+          <option value="مستر محمد">مستر محمد (0.50 ج)</option>
+          <option value="مستر أحمد">مستر أحمد (0.40 ج)</option>
+        </select>
+
+        <input type="number" placeholder="عدد الورق" style={inputStyle} value={pages} onChange={(e)=>setPages(e.target.value)} />
+        <input type="number" placeholder="عدد النسخ" style={inputStyle} value={copies} onChange={(e)=>setCopies(e.target.value)} />
+
+        <div style={{ textAlign: 'center', margin: '15px 0', padding: '10px', background: '#e8f5e9', borderRadius: '8px' }}>
+          <h3 style={{ margin: 0, color: '#2e7d32' }}>الإجمالي: {total.toFixed(2)} جنيه</h3>
+        </div>
+
+        <button onClick={handleSave} style={btnSave}>حفظ العملية 💾</button>
+      </div>
+
+      {/* سجل العمليات */}
+      <div style={{ marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>📋 سجل اليوم:</h3>
+          <button onClick={clearAll} style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer' }}>مسح الكل</button>
+        </div>
         
-        {/* اختيار المدرس */}
-        <div style={sectionStyle}>
-          <label style={labelStyle}>👤 اسم المدرس:</label>
-          <select 
-            style={inputStyle} 
-            onChange={(e) => setSelectedTeacher(teachers.find(t => t.name === e.target.value))}
-          >
-            {teachers.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
-          </select>
-        </div>
-
-        {/* عدد الورق */}
-        <div style={sectionStyle}>
-          <label style={labelStyle}>📄 عدد الورق (في الملزمة):</label>
-          <input 
-            type="number" 
-            placeholder="اكتب العدد هنا..." 
-            style={inputStyle} 
-            value={pages}
-            onChange={(e) => setPages(e.target.value)} 
-          />
-        </div>
-
-        {/* عدد النسخ */}
-        <div style={sectionStyle}>
-          <label style={labelStyle}>🔢 عدد النسخ (الكمية):</label>
-          <input 
-            type="number" 
-            placeholder="اكتب الكمية هنا..." 
-            style={inputStyle} 
-            value={copies}
-            onChange={(e) => setCopies(e.target.value)} 
-          />
-        </div>
-
-        {/* صندوق النتيجة */}
-        <div style={{ ...resultBoxStyle, border: total > 0 ? '2px solid #00ff88' : '2px solid #555' }}>
-          <p style={{ fontSize: '18px', margin: '5px 0' }}>إجمالي الحساب:</p>
-          <h1 style={{ fontSize: '40px', margin: '10px 0', color: '#00ff88' }}>{total.toFixed(2)} <span style={{fontSize: '20px'}}>جنيه</span></h1>
-          {selectedTeacher.rate > 0 && (
-            <div style={{ backgroundColor: '#333', padding: '5px', borderRadius: '5px' }}>
-              <small>سعر الورقة لهذا المدرس: {selectedTeacher.rate} جنيه</small>
+        {history.map(item => (
+          <div key={item.id} style={cardStyle}>
+            <div>
+              <strong>{item.teacher}</strong> <br />
+              <small style={{ color: '#666' }}>{item.details}</small>
             </div>
-          )}
-        </div>
-
-        <button style={saveButtonStyle} onClick={() => alert('تم الحفظ (وهمياً) - الخطوة الجاية نربط القاعدة!')}>
-          حفظ العملية في الدفتر 💾
-        </button>
+            <div style={{ textAlign: 'left' }}>
+              <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>{item.total} ج</span> <br />
+              <small style={{ fontSize: '10px' }}>{item.time}</small>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// تنسيقات مريحة للموبايل وألوان واضحة
-const sectionStyle = { display: 'flex', flexDirection: 'column', gap: '8px' };
-const labelStyle = { fontSize: '18px', fontWeight: 'bold', color: '#ccc' };
-const inputStyle = { 
-  width: '100%', 
-  padding: '15px', 
-  borderRadius: '10px', 
-  border: '2px solid #444', 
-  backgroundColor: '#2d2d2d', 
-  color: 'white', 
-  fontSize: '18px',
-  outline: 'none'
-};
-const resultBoxStyle = { 
-  marginTop: '10px', 
-  padding: '20px', 
-  borderRadius: '15px', 
-  textAlign: 'center',
-  backgroundColor: '#252525'
-};
-const saveButtonStyle = { 
-  width: '100%', 
-  padding: '18px', 
-  backgroundColor: '#007bff', 
-  color: 'white', 
-  border: 'none', 
-  borderRadius: '12px', 
-  fontWeight: 'bold', 
-  fontSize: '20px',
-  boxShadow: '0 4px 15px rgba(0,123,255,0.3)'
-};
+// تنسيقات بسيطة
+const inputStyle = { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' };
+const btnSave = { width: '100%', padding: '15px', backgroundColor: '#1a73e8', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '18px', fontWeight: 'bold' };
+const cardStyle = { display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '10px', borderRadius: '8px', marginBottom: '8px', borderRight: '5px solid #1a73e8' };
